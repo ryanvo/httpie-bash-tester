@@ -62,7 +62,7 @@ function assert_with_args_status_code () {
 }
 
 function assert_with_args_resp_body () {
-	msg "http $1 $2; headers: $3"
+	msg "http $1 $2; args: $3"
 	body="$(http -b --timeout=2 $1 $SERVER_PATH$2 "$3")"
 	if [ "$body" != "$4" ]
 	then
@@ -72,6 +72,17 @@ function assert_with_args_resp_body () {
 	fi
 }
 
+function assert_file_download () {
+	msg "http $1 sha256 hash: $2"
+
+	hash="$(http -d --timeout=2 GET $SERVER_PATH$1 | sha256sum)"
+	if [ "$hash" != "$2" ]
+	then
+		fail "expected:$2 \n   actual:$hash"
+	else
+		pass "expected:$2 \n   actual:$hash"
+	fi
+}
 
 # Test cases
 clear
@@ -80,9 +91,9 @@ echo "test 2xx error code"
 	http --check-status --timeout=2 get $SERVER_PATH &> /dev/null
 	if [ "$?" != "0" ]
 	then
-	  fail "error code: $?"
+		fail "error code: $?"
 	else
-	  pass "successful error code"
+		pass "successful error code"
 	fi
 echo
 
@@ -125,4 +136,12 @@ echo
 
 echo "test POST status line"
 	assert_with_args_status_code "--form POST" "/" "key1=value1&key2=value2" 200
+echo
+
+echo "test GET body"
+	assert_with_args_resp_body "GET" "/img.JPG" $''
+echo
+
+echo "test binary transfer"
+    assert_file_download "/img.JPG" "27e7683f0604c020cab0b7f92ae5442c90b8e7f197851754aa45c84a9be21003"
 echo
